@@ -301,17 +301,17 @@ class FullyConnected(Wiring):
         self.set_output_dim(output_dim)
         self._rng = np.random.default_rng(erev_init_seed)
         for src in range(self.units):
+            polarity = self._rng.choice([-1, 1, 1])
             for dest in range(self.units):
                 if src == dest and not self_connections:
                     continue
-                polarity = self._rng.choice([-1, 1, 1])
                 self.add_synapse(src, dest, polarity)
 
     def build(self, input_shape):
         super().build(input_shape)
         for src in range(self.input_dim):
+            polarity = self._rng.choice([-1, 1, 1])
             for dest in range(self.units):
-                polarity = self._rng.choice([-1, 1, 1])
                 self.add_sensory_synapse(src, dest, polarity)
 
 
@@ -360,7 +360,6 @@ class Random(Wiring):
         for src, dest in used_sensory_synapses:
             polarity = self._rng.choice([-1, 1, 1])
             self.add_sensory_synapse(src, dest, polarity)
-            polarity = self._rng.choice([-1, 1, 1])
             self.add_sensory_synapse(src, dest, polarity)
 
 
@@ -462,12 +461,13 @@ class NCP(Wiring):
         unreachable_inter_neurons = [l for l in self._inter_neurons]
         # Randomly connects each sensory neuron to exactly _sensory_fanout number of interneurons
         for src in self._sensory_neurons:
+            polarity = 1
+            print('halo')
             for dest in self._rng.choice(
                 self._inter_neurons, size=self._sensory_fanout, replace=False
             ):
                 if dest in unreachable_inter_neurons:
                     unreachable_inter_neurons.remove(dest)
-                polarity = self._rng.choice([-1, 1])
                 self.add_sensory_synapse(src, dest, polarity)
 
         # If it happens that some interneurons are not connected, connect them now
@@ -479,22 +479,22 @@ class NCP(Wiring):
             mean_inter_neuron_fanin, 1, self._num_sensory_neurons
         )
         for dest in unreachable_inter_neurons:
+            polarity = 1
             for src in self._rng.choice(
                 self._sensory_neurons, size=mean_inter_neuron_fanin, replace=False
             ):
-                polarity = self._rng.choice([-1, 1])
                 self.add_sensory_synapse(src, dest, polarity)
 
     def _build_inter_to_command_layer(self):
         # Randomly connect interneurons to command neurons
         unreachable_command_neurons = [l for l in self._command_neurons]
         for src in self._inter_neurons:
+            polarity = 1
             for dest in self._rng.choice(
                 self._command_neurons, size=self._inter_fanout, replace=False
             ):
                 if dest in unreachable_command_neurons:
                     unreachable_command_neurons.remove(dest)
-                polarity = self._rng.choice([-1, 1])
                 self.add_synapse(src, dest, polarity)
 
         # If it happens that some command neurons are not connected, connect them now
@@ -506,10 +506,10 @@ class NCP(Wiring):
             mean_command_neurons_fanin, 1, self._num_command_neurons
         )
         for dest in unreachable_command_neurons:
+            polarity = 1
             for src in self._rng.choice(
                 self._inter_neurons, size=mean_command_neurons_fanin, replace=False
             ):
-                polarity = self._rng.choice([-1, 1])
                 self.add_synapse(src, dest, polarity)
 
     def _build_recurrent_command_layer(self):
@@ -517,19 +517,19 @@ class NCP(Wiring):
         for i in range(self._recurrent_command_synapses):
             src = self._rng.choice(self._command_neurons)
             dest = self._rng.choice(self._command_neurons)
-            polarity = self._rng.choice([-1, 1])
+            polarity = 1
             self.add_synapse(src, dest, polarity)
 
     def _build_command__to_motor_layer(self):
         # Randomly connect command neurons to motor neurons
         unreachable_command_neurons = [l for l in self._command_neurons]
         for dest in self._motor_neurons:
+            polarity = 1
             for src in self._rng.choice(
                 self._command_neurons, size=self._motor_fanin, replace=False
             ):
                 if src in unreachable_command_neurons:
                     unreachable_command_neurons.remove(src)
-                polarity = self._rng.choice([-1, 1])
                 self.add_synapse(src, dest, polarity)
 
         # If it happens that some commandneurons are not connected, connect them now
@@ -539,10 +539,10 @@ class NCP(Wiring):
         # Connect "forgotten" command neuron to at least 1 and at most all motor neuron
         mean_command_fanout = np.clip(mean_command_fanout, 1, self._num_motor_neurons)
         for src in unreachable_command_neurons:
+            polarity = 1
             for dest in self._rng.choice(
                 self._motor_neurons, size=mean_command_fanout, replace=False
             ):
-                polarity = self._rng.choice([-1, 1])
                 self.add_synapse(src, dest, polarity)
 
     def build(self, input_shape):

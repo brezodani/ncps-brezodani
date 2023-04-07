@@ -2,8 +2,9 @@ import numpy as np
 import os
 from tensorflow import keras
 import tensorflow as tf
-import kerasncp as kncp
-from kerasncp.tf import LTCCell
+import ncps as kncp
+from ncps.wirings import AutoNCP
+from ncps.tf import LTC
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -37,7 +38,6 @@ ax1.set_title("Label: {:0.2f}".format(y_train[0, 0, 0]))
 ax2.set_title("Label: {:0.2f}".format(y_train[0, 12, 0]))
 ax3.set_title("Label: {:0.2f}".format(y_train[9, 0, 0]))
 fig.suptitle("LIDAR collision avoidance training examples")
-fig.savefig("lidar_examples.png")
 
 
 # Build the network
@@ -45,17 +45,7 @@ fig.savefig("lidar_examples.png")
 N = x_train.shape[2]
 channels = x_train.shape[3]
 
-wiring = kncp.wirings.NCP(
-    inter_neurons=12,  # Number of inter neurons
-    command_neurons=8,  # Number of command neurons
-    motor_neurons=1,  # Number of motor neurons
-    sensory_fanout=4,  # How many outgoing synapses has each sensory neuron
-    inter_fanout=4,  # How many outgoing synapses has each inter neuron
-    recurrent_command_synapses=4,  # Now many recurrent synapses are in the
-    # command neuron layer
-    motor_fanin=6,  # How many incomming syanpses has each motor neuron
-)
-rnn_cell = LTCCell(wiring)
+wiring = AutoNCP(21,1)
 
 # We need to use the TimeDistributed layer to independently apply the
 # Conv1D/MaxPool1D/Dense over each time-step of the input time-series.
@@ -69,17 +59,20 @@ model = keras.models.Sequential(
             keras.layers.Conv1D(20, 5, strides=2, activation="relu")
         ),
         keras.layers.TimeDistributed(keras.layers.MaxPool1D()),
-        keras.layers.TimeDistributed(keras.layers.Conv1D(22, 5, activation="relu")),
+        keras.layers.TimeDistributed(
+            keras.layers.Conv1D(22, 5, activation="relu")
+        ),
         keras.layers.TimeDistributed(keras.layers.MaxPool1D()),
-        keras.layers.TimeDistributed(keras.layers.Conv1D(24, 5, activation="relu")),
+        keras.layers.TimeDistributed(
+            keras.layers.Conv1D(24, 5, activation="relu")
+        ),
         keras.layers.TimeDistributed(keras.layers.Flatten()),
         keras.layers.TimeDistributed(keras.layers.Dense(32, activation="relu")),
-        keras.layers.RNN(rnn_cell, return_sequences=True),
+        LTC(wiring, return_sequences=True),
     ]
 )
 model.compile(
-    optimizer=keras.optimizers.Adam(0.01),
-    loss="mean_squared_error",
+    optimizer=keras.optimizers.Adam(0.01), loss="mean_squared_error",
 )
 
 model.summary(line_length=100)
@@ -88,23 +81,22 @@ model.summary(line_length=100)
 
 sns.set_style("white")
 plt.figure(figsize=(12, 12))
-legend_handles = rnn_cell.draw_graph(
-    layout="spiral", neuron_colors={"command": "tab:cyan"}
-)
+legend_handles = wiring.draw_graph(layout='spiral',neuron_colors={"command": "tab:cyan"})
 plt.legend(handles=legend_handles, loc="upper center", bbox_to_anchor=(1, 1))
 sns.despine(left=True, bottom=True)
 plt.tight_layout()
-plt.savefig("architecture.png")
+plt.savefig("architecture3.png")
+plt.show()
 
 # Evaluate the model before training
 print("Validation set MSE before training")
-model.evaluate(x_valid, y_valid)
+# model.evaluate(x_valid, y_valid)
 
-# Train the model
-model.fit(
-    x=x_train, y=y_train, batch_size=32, epochs=20, validation_data=(x_valid, y_valid)
-)
+# # Train the model
+# model.fit(
+#     x=x_train, y=y_train, batch_size=32, epochs=20, validation_data=(x_valid, y_valid)
+# )
 
-# Evaluate the model again after the training
-print("Validation set MSE after training")
-model.evaluate(x_valid, y_valid)
+# # Evaluate the model again after the training
+# print("Validation set MSE after training")
+# model.evaluate(x_valid, y_valid)
