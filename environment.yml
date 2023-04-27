@@ -1,0 +1,8 @@
+name: brezodani-ncps
+dependencies:
+  - numpy
+  - pandas
+  - tensorflow
+  - matplotlib
+  - seaborn
+  - networkx

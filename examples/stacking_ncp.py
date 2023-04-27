@@ -1,7 +1,5 @@
 import numpy as np
-import os
 from tensorflow import keras
-import tensorflow as tf
 import ncps as kncp
 from ncps.wirings import AutoNCP
 from ncps.tf import LTC
@@ -85,7 +83,7 @@ legend_handles = wiring.draw_graph(layout='spiral',neuron_colors={"command": "ta
 plt.legend(handles=legend_handles, loc="upper center", bbox_to_anchor=(1, 1))
 sns.despine(left=True, bottom=True)
 plt.tight_layout()
-plt.savefig("architecture3.png")
+plt.savefig("architecture4.png")
 plt.show()
 
 # Evaluate the model before training

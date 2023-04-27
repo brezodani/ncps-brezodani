@@ -63,6 +63,22 @@ class Wiring:
     def get_type_of_neuron(self, neuron_id):
         return "motor" if neuron_id < self.output_dim else "inter"
 
+    def get_sensory_synapse_type_for_dest(self, dest):
+        sensory_array = self.sensory_adjacency_matrix[:, dest]
+        return sensory_array[sensory_array != 0][0]
+
+    def get_sensory_synapse_type_for_src(self, src):
+        sensory_array = self.sensory_adjacency_matrix[src, :]
+        return sensory_array[sensory_array != 0][0]
+
+    def get_synapse_type_for_dest(self, dest):
+        array = self.adjacency_matrix[:, dest]
+        return array[array != 0][0]
+
+    def get_synapse_type_for_src(self, src):
+        array = self.adjacency_matrix[src, :]
+        return array[array != 0][0]
+
     def add_synapse(self, src, dest, polarity):
         if src < 0 or src >= self.units:
             raise ValueError(
@@ -457,12 +473,11 @@ class NCP(Wiring):
             return "command"
         return "inter"
 
-    def _build_sensory_to_inter_layer(self):
+    def _build_sensory_to_inter_layer(self, inhibitory_percentage = 0):
         unreachable_inter_neurons = [l for l in self._inter_neurons]
         # Randomly connects each sensory neuron to exactly _sensory_fanout number of interneurons
         for src in self._sensory_neurons:
-            polarity = 1
-            print('halo')
+            polarity = np.random.choice([-1, 1], 1, replace=False, p=[inhibitory_percentage, 1 - inhibitory_percentage])
             for dest in self._rng.choice(
                 self._inter_neurons, size=self._sensory_fanout, replace=False
             ):
@@ -479,17 +494,17 @@ class NCP(Wiring):
             mean_inter_neuron_fanin, 1, self._num_sensory_neurons
         )
         for dest in unreachable_inter_neurons:
-            polarity = 1
             for src in self._rng.choice(
                 self._sensory_neurons, size=mean_inter_neuron_fanin, replace=False
             ):
+                polarity = self.get_sensory_synapse_type_for_src(src)
                 self.add_sensory_synapse(src, dest, polarity)
 
-    def _build_inter_to_command_layer(self):
+    def _build_inter_to_command_layer(self, inhibitory_percentage = 0):
         # Randomly connect interneurons to command neurons
         unreachable_command_neurons = [l for l in self._command_neurons]
         for src in self._inter_neurons:
-            polarity = 1
+            polarity = np.random.choice([-1, 1], 1, replace=False, p=[inhibitory_percentage, 1 - inhibitory_percentage])
             for dest in self._rng.choice(
                 self._command_neurons, size=self._inter_fanout, replace=False
             ):
@@ -506,10 +521,10 @@ class NCP(Wiring):
             mean_command_neurons_fanin, 1, self._num_command_neurons
         )
         for dest in unreachable_command_neurons:
-            polarity = 1
             for src in self._rng.choice(
                 self._inter_neurons, size=mean_command_neurons_fanin, replace=False
             ):
+                polarity = self.get_synapse_type_for_src(src)
                 self.add_synapse(src, dest, polarity)
 
     def _build_recurrent_command_layer(self):
@@ -520,11 +535,11 @@ class NCP(Wiring):
             polarity = 1
             self.add_synapse(src, dest, polarity)
 
-    def _build_command__to_motor_layer(self):
+    def _build_command__to_motor_layer(self, inhibitory_percentage = 0):
         # Randomly connect command neurons to motor neurons
         unreachable_command_neurons = [l for l in self._command_neurons]
         for dest in self._motor_neurons:
-            polarity = 1
+            polarity = np.random.choice([-1, 1], 1, replace=False, p=[inhibitory_percentage, 1 - inhibitory_percentage])
             for src in self._rng.choice(
                 self._command_neurons, size=self._motor_fanin, replace=False
             ):
@@ -539,21 +554,22 @@ class NCP(Wiring):
         # Connect "forgotten" command neuron to at least 1 and at most all motor neuron
         mean_command_fanout = np.clip(mean_command_fanout, 1, self._num_motor_neurons)
         for src in unreachable_command_neurons:
-            polarity = 1
             for dest in self._rng.choice(
                 self._motor_neurons, size=mean_command_fanout, replace=False
             ):
+                polarity = self.get_synapse_type_for_dest(dest)
                 self.add_synapse(src, dest, polarity)
 
     def build(self, input_shape):
         super().build(input_shape)
         self._num_sensory_neurons = self.input_dim
         self._sensory_neurons = list(range(0, self._num_sensory_neurons))
+        inhibitory_neurons_percentage = 0.3
 
-        self._build_sensory_to_inter_layer()
-        self._build_inter_to_command_layer()
+        self._build_sensory_to_inter_layer(inhibitory_neurons_percentage)
+        self._build_inter_to_command_layer(inhibitory_neurons_percentage)
         self._build_recurrent_command_layer()
-        self._build_command__to_motor_layer()
+        self._build_command__to_motor_layer(inhibitory_neurons_percentage)
 
 
 class AutoNCP(NCP):
