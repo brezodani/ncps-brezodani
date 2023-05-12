@@ -42,52 +42,53 @@ fig.suptitle("LIDAR collision avoidance training examples")
 
 N = x_train.shape[2]
 channels = x_train.shape[3]
+neuron_numbers = [6, 7, 8, 10, 11, 13, 15, 17, 19, 21]
 
-wiring = AutoNCP(21,1)
+for neuron_number in neuron_numbers:
+    wiring = AutoNCP(neuron_number,1)
 
-# We need to use the TimeDistributed layer to independently apply the
-# Conv1D/MaxPool1D/Dense over each time-step of the input time-series.
-model = keras.models.Sequential(
-    [
-        keras.layers.InputLayer(input_shape=(None, N, channels)),
-        keras.layers.TimeDistributed(
-            keras.layers.Conv1D(18, 5, strides=3, activation="relu")
-        ),
-        keras.layers.TimeDistributed(
-            keras.layers.Conv1D(20, 5, strides=2, activation="relu")
-        ),
-        keras.layers.TimeDistributed(keras.layers.MaxPool1D()),
-        keras.layers.TimeDistributed(
-            keras.layers.Conv1D(22, 5, activation="relu")
-        ),
-        keras.layers.TimeDistributed(keras.layers.MaxPool1D()),
-        keras.layers.TimeDistributed(
-            keras.layers.Conv1D(24, 5, activation="relu")
-        ),
-        keras.layers.TimeDistributed(keras.layers.Flatten()),
-        keras.layers.TimeDistributed(keras.layers.Dense(32, activation="relu")),
-        LTC(wiring, return_sequences=True),
-    ]
-)
-model.compile(
-    optimizer=keras.optimizers.Adam(0.01), loss="mean_squared_error",
-)
+    # We need to use the TimeDistributed layer to independently apply the
+    # Conv1D/MaxPool1D/Dense over each time-step of the input time-series.
+    model = keras.models.Sequential(
+        [
+            keras.layers.InputLayer(input_shape=(None, N, channels)),
+            keras.layers.TimeDistributed(
+                keras.layers.Conv1D(18, 5, strides=3, activation="relu")
+            ),
+            keras.layers.TimeDistributed(
+                keras.layers.Conv1D(20, 5, strides=2, activation="relu")
+            ),
+            keras.layers.TimeDistributed(keras.layers.MaxPool1D()),
+            keras.layers.TimeDistributed(
+                keras.layers.Conv1D(22, 5, activation="relu")
+            ),
+            keras.layers.TimeDistributed(keras.layers.MaxPool1D()),
+            keras.layers.TimeDistributed(
+                keras.layers.Conv1D(24, 5, activation="relu")
+            ),
+            keras.layers.TimeDistributed(keras.layers.Flatten()),
+            keras.layers.TimeDistributed(keras.layers.Dense(32, activation="relu")),
+            LTC(wiring, return_sequences=True),
+        ]
+    )
+    model.compile(
+        optimizer=keras.optimizers.Adam(0.01), loss="mean_squared_error",
+    )
 
-model.summary(line_length=100)
+    model.summary(line_length=100)
 
-# Plot the network architecture
+    # Plot the network architecture
 
-sns.set_style("white")
-plt.figure(figsize=(12, 12))
-legend_handles = wiring.draw_graph(layout='spiral',neuron_colors={"command": "tab:cyan"})
-plt.legend(handles=legend_handles, loc="upper center", bbox_to_anchor=(1, 1))
-sns.despine(left=True, bottom=True)
-plt.tight_layout()
-plt.savefig("architecture4.png")
-plt.show()
+    sns.set_style("white")
+    plt.figure(figsize=(12, 12))
+    legend_handles = wiring.draw_graph(layout='spiral',neuron_colors={"command": "tab:cyan"})
+    plt.legend(handles=legend_handles, loc="upper center", bbox_to_anchor=(1, 1))
+    sns.despine(left=True, bottom=True)
+    plt.tight_layout()
+    plt.savefig("architecture" + str(neuron_number) + ".png")
 
 # Evaluate the model before training
-print("Validation set MSE before training")
+# print("Validation set MSE before training")
 # model.evaluate(x_valid, y_valid)
 
 # # Train the model

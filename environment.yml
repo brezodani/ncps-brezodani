@@ -1,4 +1,4 @@
-name: brezodani-ncps
+name: brezodani-ncps2
 dependencies:
   - numpy
   - pandas

@@ -532,7 +532,11 @@ class NCP(Wiring):
         for i in range(self._recurrent_command_synapses):
             src = self._rng.choice(self._command_neurons)
             dest = self._rng.choice(self._command_neurons)
-            polarity = 1
+            # TODO: The neurons which connects to itself, they must have an excitatory synapse
+            if src == dest:
+                polarity = 1
+            else:
+                polarity = self._rng.choice([-1, 1])
             self.add_synapse(src, dest, polarity)
 
     def _build_command__to_motor_layer(self, inhibitory_percentage = 0):
